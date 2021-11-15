@@ -1,0 +1,152 @@
+﻿@namespace WoodCutterAlg
+
+<style>
+
+    .slider {
+        width: 40px;
+        height: 27px;
+        border-radius: 13px;
+        background: #71a2c0;
+        position: relative;
+        margin-top:5px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .sliderbullet {
+        position: absolute;
+        border-radius: 100%;
+        width: 21px;
+        height: 21px;
+        background-color: #71a2c0;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-left: 3px;
+        box-shadow: -2px 0px 7px 0px #3d4f5a;
+        transition: 300ms;
+    }
+
+
+
+    
+
+    .aktivbutton {
+        margin-left: 17px;
+        background: #71a2c0;
+    }
+
+    .aktivslider {
+        background: #71a2c0;
+    }
+
+    .redbullet, .redslider {
+        background-color: #c19494;
+    }
+
+    @@media(max-width:767px) {
+
+        .sliderbullet {
+            width: 15px;
+            height: 15px;
+        }
+
+        .slider {
+            width: 35px;
+            height: 21px;
+            border-radius: 10px;
+        }
+    }
+
+
+</style>
+
+<div id="slider" class="@silderclasslist" @onclick='async () => { if(enabled) Value = !Value;  }'> <div class=@bulletclasslist></div> </div>
+
+@code {
+    private bool _value;
+    private string silderclasslist = "slider";
+    private string bulletclasslist = "sliderbullet";
+
+
+    [Parameter]
+    public bool enabled { get; set; } = true;
+
+    [Parameter]
+    public bool red { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Value
+    {
+        get => _value;
+        set
+        {
+            if (_value == value) return;
+            _value = value;
+            toggle();
+            ValueChanged.InvokeAsync(value);
+
+        }
+
+
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        if (red)
+        {
+            if (Value)
+            {
+                silderclasslist = "slider aktivslider";
+                bulletclasslist = "sliderbullet aktivbutton";
+            }
+            else
+            {
+                silderclasslist = "slider redslider";
+                bulletclasslist = "sliderbullet redbullet";
+            }
+
+        }
+        else
+        {
+            if (Value)
+            {
+                silderclasslist = "slider aktivslider";
+                bulletclasslist = "sliderbullet aktivbutton";
+            }
+            else
+            {
+                silderclasslist = "slider ";
+                bulletclasslist = "sliderbullet ";
+            }
+        }
+
+
+        await base.OnParametersSetAsync();
+
+    }
+
+
+
+
+
+    private void toggle() {
+
+        if (red)
+        {
+            silderclasslist = silderclasslist == "slider redslider" ? "slider aktivslider" : "slider redslider";
+            bulletclasslist = bulletclasslist == "sliderbullet redbullet" ? "sliderbullet aktivbutton" : "sliderbullet redbullet";
+        }
+        else
+        {
+            silderclasslist = silderclasslist == "slider" ? "slider aktivslider" : "slider";
+            bulletclasslist = bulletclasslist == "sliderbullet" ? "sliderbullet aktivbutton" : "sliderbullet";
+        }
+
+        StateHasChanged();
+    }
+}
+

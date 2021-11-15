@@ -1,0 +1,149 @@
+﻿@inject IWoodCutterAlgorithm _woodCutter
+@inject IJSRuntime JSRuntime
+@page "/"
+@namespace WoodCutterAlg
+@using System.Drawing
+
+@if (resultVisible)
+    {
+        <div class="result-wrapper">
+        <p class="result-width">@resultBasePlate.Width</p>
+        <p class="result-height">@resultBasePlate.Height</p>
+        <div class="baseplate-result" style="@BasePlateSyle()">
+
+        @foreach( var plate in resultPlates)
+        {
+            <div style=@ResultPlateStyle(plate)>
+                <p class="result-plate-heigth">@plate.Height</p>
+                <p class="result-plate-width">@plate.Width</p>
+                <p class="result-plate-x">X: @(plate.X-1)</p>
+                <p class="result-plate-y">Y: @(plate.Y-1)</p>
+
+            </div>
+        }
+
+        </div>
+      </div>
+        <button class="form-button close-button" @onclick="()=>resultVisible= false"> schließen </button>
+    }
+else
+{
+        <div class="rawplate-wrapper">
+    @foreach (var plate in Plates)
+{   
+    <div class="rawplate">
+    <div class="rectangle-raw" style=@RectangeStyle(plate)></div>
+    <p class="widthlabel">Breite:</p>
+    <p class="width">@plate.Width</p>
+    <p class="heightlabel">Höhe:</p>
+    <p class="height">@plate.Height</p>
+    <button class="form-button plate-delete-button" @onclick="()=>DeletePlate(plate)">Löschen</button>
+    </div>
+}
+</div>
+
+
+<div class="form-wrapper">
+ <h3 class="form-header">Neues Holzteil hinzufügen</h3>
+<div class="form">
+    <div class=form-item>
+        <p>Breite</p>
+    <input class="form-input" tabindex=1 min=0 step=1  @onkeydown=HideError  @bind-value="widthNew" placeholder="Breite" type="number"/>
+    </div>    
+    
+    <div class=form-item>
+           <p>Höhe</p>
+    <input class="form-input"  tabindex=2 min=0 step=1 @onkeydown=HideError @bind-value="heightNew" placeholder="Höhe" type="number"/>
+    </div>
+    
+    <button class="form-button" tabindex=3 @onclick="AddNewRectangle">Hinzufügen</button>
+</div>
+<div class="calculate-button-wrapper">
+    <div class="switchbutton-wrapper">
+  <p>Drehen erlauben</p>
+<SwitchButton  Value=turningEnabled ValueChanged=TurningEnabledChanged></SwitchButton>
+</div>
+<button class="form-button" tabindex=-1  @onclick="CalculateBasePlate">Holzplatte Berechnen</button>
+</div>
+<div style="height:20px;">
+<p style="text-align: center; color: red;">@errorString</p>
+</div>
+</div>
+}
+
+@code{
+
+    private int widthNew;
+    private int heightNew;
+    private string errorString;
+    private bool resultVisible;
+    private bool turningEnabled;
+    private BasicPlateModel resultBasePlate = new BasicPlateModel();
+    private List<PlateModel> resultPlates= new();
+    private double resultScale;
+    private void HideError() => errorString = "";
+    private void TurningEnabledChanged(bool enabled) => turningEnabled = enabled;
+    public List<PlateModel> Plates { get; set; } = new();
+
+
+    private void AddNewRectangle()
+    {
+        if(widthNew <1 || heightNew <1)
+        {
+            errorString="Breite und Höhe müssen mindestens 1 sein.";
+            return;
+        }
+        errorString = "";
+        Plates.Add(new PlateModel(widthNew, heightNew));
+        widthNew = 0;
+        heightNew = 0;
+    }
+
+    private void DeletePlate(PlateModel plate) => Plates.Remove(plate);
+
+    private string RectangeStyle(PlateModel plate)
+    {
+        double height = plate.Height*10;
+        double width = plate.Width*10;
+        Random rand = new Random();
+        if (plate.Height> 10 && plate.Height > plate.Width)
+        {
+            height = 100;
+            width = Math.Round(((double)plate.Width / (double)plate.Height)*100);
+        }
+
+        if (plate.Width> 10 && plate.Width > plate.Height)
+        {
+            width = 100;
+            height = Math.Round(((double)plate.Height / (double)plate.Width)*100);
+        }
+        plate.Color = String.IsNullOrEmpty(plate.Color) ? $"rgb({rand.Next(256)},{rand.Next(256)},{rand.Next(256)})" : plate.Color;
+        return $"background-color:{plate.Color}; height: {height}px; width:{width}px;";
+    }
+
+    private string BasePlateSyle()
+    {
+        resultScale = resultBasePlate.Height > resultBasePlate.Width ? 500/resultBasePlate.Height : 500/resultBasePlate.Width;
+        return $"width:{resultBasePlate.Width*resultScale}px; height:{resultBasePlate.Height*resultScale}px";
+
+    }
+
+    private string ResultPlateStyle(PlateModel plate)
+    {
+        return $"background:{plate.Color};opacity:0.7; position:absolute; left:{(plate.X-1)*resultScale}px; top:{(plate.Y-1)*resultScale}px; width:{plate.Width*resultScale}px; height:{plate.Height*resultScale}px";
+    }
+
+    private void CalculateBasePlate()
+    {
+        if (!Plates.Any())
+        {
+            errorString="Es muss mindestens eine Form hinzugefügt werden";
+            return;
+
+        }
+        var result = _woodCutter.CalculateMinimumBasicPlate(Plates,turningEnabled);
+        resultBasePlate = result.Item1;
+        resultPlates = result.Item2;
+        resultVisible = true;
+    }
+}
